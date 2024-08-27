@@ -46,7 +46,7 @@ public class SecurityConfig {
         if(!manager.userExists("admin")){
             manager.createUser(
                     User.withUsername("admin")
-                            .password("{noop}adminPas")
+                            .password("{noop}adminPass")
                             .roles("ADMIN")
                             .build()
             );
