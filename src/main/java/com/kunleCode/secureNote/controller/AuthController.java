@@ -10,7 +10,9 @@ import com.kunleCode.secureNote.security.request.LoginRequest;
 import com.kunleCode.secureNote.security.request.SignupRequest;
 import com.kunleCode.secureNote.security.response.LoginResponse;
 import com.kunleCode.secureNote.security.response.SignupResponse;
+import com.kunleCode.secureNote.security.response.UserInfoResponse;
 import com.kunleCode.secureNote.security.services.UserDetailsImpl;
+import com.kunleCode.secureNote.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,12 +22,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -52,6 +53,9 @@ public class AuthController {
 
     @Autowired
     PasswordEncoder encoder;
+
+    @Autowired
+    UserService userService;
 
     @PostMapping("/public/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
@@ -130,5 +134,36 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok(new SignupResponse("User registered successfully!"));
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<?> getUserDetails(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userService.findByUsername(userDetails.getUsername());
+
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(item -> item.getAuthority())
+                .collect(Collectors.toList());
+
+        UserInfoResponse response = new UserInfoResponse(
+                user.getUserId(),
+                user.getUserName(),
+                user.getEmail(),
+                user.isAccountNonLocked(),
+                user.isAccountNonExpired(),
+                user.isCredentialsNonExpired(),
+                user.isEnabled(),
+                user.getCredentialsExpiryDate(),
+                user.getAccountExpiryDate(),
+                user.isTwoFactorEnabled(),
+                roles
+        );
+
+        return ResponseEntity.ok().body(response);
+    }
+
+    @GetMapping("/username")
+    public String getUsername(@AuthenticationPrincipal UserDetails userDetails) {
+
+        return (userDetails != null) ? userDetails.getUsername() : "";
     }
 }
